@@ -1,0 +1,47 @@
+.helios {
+    > button.helios-arrow {
+        position: absolute;
+        top: 50%;
+        z-index: 2;
+
+        &.helios-prev {
+            left: 0;
+        }
+
+        &.helios-next {
+            right: 0;
+        }
+    }
+
+    > ul.helios-dots {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 0;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        text-align: center;
+
+        > li {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: red;
+            margin-right: 15px;
+            @include transition(.2s);
+
+            &:hover,
+            &.active {
+                background: blue;
+            }
+
+            > a {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
+}
