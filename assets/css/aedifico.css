@@ -6,6 +6,7 @@
 
 .row.aedifico > div[class^='col'] {
   position: absolute;
-  border: solid 1px #6c757d;
+  /* border: solid 1px #6c757d; */
   padding: 10px;
+  background-color: rgba(0,0,0,.3);
 }
