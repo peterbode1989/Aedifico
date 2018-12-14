@@ -1,0 +1,22 @@
+.helios {
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 30px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    > div[class^='col'] {
+        flex: 0 0 auto;
+        z-index: 1;
+
+        > div {
+            background-color: $gray;
+            height: 100%;
+        }
+    }
+}
