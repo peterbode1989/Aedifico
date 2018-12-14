@@ -59,7 +59,7 @@
 
                 _.config.collection.push({
                     w: w,
-                    h: (oh / ow) * w,
+                    h: Math.round((oh / ow) * w),
                     p: _.config.children[i],
                 });
             }
@@ -78,26 +78,37 @@
 
             var index = 0;
             for(var i = 0; i < _.config.collection.length; i++) {
-                var y = _.grid[0].y;
-                console.log(y);
+                let t = _.grid.reduce(function(prev, curr) {
+                    if (prev.y < curr.y || prev.x < curr.x) return prev;
+                    if (prev.y > curr.y || prev.x > curr.x) return curr;
+                    return 0;
+                });
+
+                var y = t.y;
                 var w = (_.config.parentWidth / _.options.colCount);
-                var l = (_.grid[0].x * 100);
+                var l = (t.x * 100);
 
                 _.config.collection[i].p.style.top = y + 'px';
                 _.config.collection[i].p.style.width = _.config.collection[i].w + 'px';
                 _.config.collection[i].p.style.left = l + '%';
 
 
+                console.table(_.grid);
+
+
+                console.log(t);
+                let currIndex = _.grid.map((item) => item).indexOf(t);
+                console.log(currIndex);
+                _.grid.splice(currIndex, 1);
+
                 _.grid.push({
                     x: index / _.options.colCount,
                     y: _.config.collection[i].h + y,
                 });
-                if(_.grid.length > _.options.colCount) {
-                    _.grid = _.grid.slice(-_.options.colCount);
-                }
+
 
                 index++;
-                if(index === 3) index = 0;
+                if(index === _.options.colCount) index = 0;
             }
         }
     }
