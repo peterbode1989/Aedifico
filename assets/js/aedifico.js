@@ -27,7 +27,7 @@
 
             _.defaults = {
                 namespace: 'aedifico',
-                colCount: 3,
+                colCount: 3, // deprecated
             };
 
             _.options = $.extend({}, _.defaults, settings);
@@ -54,13 +54,9 @@
             var _ = this;
 
             for(var i = 0; i < _.config.children.length; i++) {
-                var ow = $(_.config.children[i]).outerWidth();
-                var oh = $(_.config.children[i]).outerHeight();
-                var w = (_.config.parentWidth / _.options.colCount);
-
                 var bin = {
-                    w: w,
-                    h: Math.round((oh / ow) * w),
+                    w: $(_.config.children[i]).outerWidth(),
+                    h: $(_.config.children[i]).outerHeight(),
                     p: _.config.children[i],
                 };
 
@@ -73,54 +69,93 @@
             var _ = this;
 
             _.grid = [];
-            for(var i = 0; i < _.options.colCount; i++) {
-            	_.grid.push({
-                    x: i / _.options.colCount,
-                    y: 0,
-                });
-            }
+        	_.grid.push({
+                minX: 0,
+                maxX: _.config.parentWidth,
+                y: 0,
+            });
 
             // IDEA: Refactor into multiple __proto__
-            var index = 0;
             for(var i = 0; i < _.config.collection.length; i++) {
-                let t = _.find();
 
-                var y = t.y;
-                var w = (_.config.parentWidth / _.options.colCount);
-                var l = (t.x * 100);
+                var elm = _.config.collection[i];
+                console.log(elm);
 
-                _.config.collection[i].p.style.top = y + 'px';
-                _.config.collection[i].p.style.left = l + '%';
-                _.config.collection[i].p.style.width = _.config.collection[i].w + 'px';
+                console.table(_.grid);
+
+                var t = _.grid[0];
+                function getSpot(elm) {
+                    for(var spot in _.grid) {
+                        var g = _.grid[spot];
+                        if(g.minX + elm.w <= g.maxX) return _.grid[spot];
+                    }
+
+                    return {
+                        minX: 0,
+                        maxX: _.config.parentWidth,
+                        y: _.grid.reduce((min, b) => Math.max(min, b.y), _.grid[0].y),
+                    };
+                }
+
+                t = getSpot(elm);
+
+                console.log(t);
+
+                _.config.collection[i].p.style.top = t.y + 'px';
+                _.config.collection[i].p.style.left = t.minX + 'px';
+
+
+
+
+                // var y = t.y;
+                // var w = (_.config.parentWidth / _.options.colCount);
+                // var l = (t.x * 100);
+                //
+                // _.config.collection[i].p.style.top = y + 'px';
+                // _.config.collection[i].p.style.left = l + '%';
+                // _.config.collection[i].p.style.width = _.config.collection[i].w + 'px';
                 // _.config.collection[i].p.style.height = _.config.collection[i].h + 'px'; //// FIXME: this spacing hotfix (-4 or +4 pixels shift from aspect-ratio calc)
-
+                _.grid.push({
+                    minX: Math.round(t.minX),
+                    maxX: Math.round(t.minX + elm.w),
+                    y: Math.round(t.y + elm.h),
+                });
+                t.minX += Math.round(elm.w);
 
                 // console.table(_.grid);
                 // console.log(t);
-                let currIndex = _.grid.map((item) => item).indexOf(t);
-                // console.log(currIndex);
-                _.grid.splice(currIndex, 1);
-
-                _.grid.push({
-                    x: index / _.options.colCount,
-                    y: Math.round(_.config.collection[i].h + y),
-                });
+                if(t.minX >= t.maxX) {
+                    let currIndex = _.grid.map((item) => item).indexOf(t);
+                    console.log(currIndex);
+                    _.grid.splice(currIndex, 1);
+                }
+                console.log('\n\n\n\n');
 
 
-                index++;
-                if(index === _.options.colCount) index = 0;
+
+                //
+                // _.grid.push({
+                //     x: index / _.options.colCount,
+                //     y: Math.round(_.config.collection[i].h + y),
+                // });
+
             }
         },
 
-        find: function() {
+        find: function(elm) {
             var _ = this;
 
             return _.grid.reduce(function(prev, curr) {
-                if (prev.y < curr.y || prev.x < curr.x) return prev;
-                if (prev.y > curr.y || prev.x > curr.x) return curr;
-                return 0;
+                console.table({prev,curr, elm});
+
+                // if(prev.minX + elm.w <= prev.)
+                // if (prev.y < curr.y || prev.x < curr.x) return prev;
+                // if (prev.y > curr.y || prev.x > curr.x) return curr;
+                // return 0;
             });
         }
+
+
     }
 
     $.fn.aedifico = function() {
