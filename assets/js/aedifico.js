@@ -27,7 +27,8 @@
 
             _.defaults = {
                 namespace: 'aedifico',
-                colCount: 3, // deprecated
+                className: 'col-',
+                colCount: 12,
             };
 
             _.options = $.extend({}, _.defaults, settings);
@@ -36,10 +37,9 @@
                 parentWidth: $(element).outerWidth(),
                 children: [],
                 collection: [],
+                rows: [],
                 windowDelay: null,
             };
-
-            console.log(_.config);
 
             $(window).on('resize.' + _.config.parent, $.proxy(_.resize, _));
 
@@ -52,30 +52,114 @@
         var _ = this;
         _.config.children = [];
         _.config.children = _.config.parent.children('div');
+
+        _.config.rows.push({
+            cells: [],
+            filled: 0,
+            height: 0,
+        })
+
         _.collect();
     }
+
+
 
     Aedifico.prototype.collect = function() {
         var _ = this;
 
         _.config.collection = [];
         for(var i = 0; i < _.config.children.length; i++) {
+            // console.log($(_.config.children[i]).attr('class').split(' '));
+            var className = $(_.config.children[i]).attr('class').split(' ').filter(function(e) {
+                return e.indexOf(_.options.className) > -1
+            });
+            // One class only
+            var cellAmount = className[0].substring(_.options.className.length);
+
             var bin = {
-                w: $(_.config.children[i]).outerWidth(),
-                h: $(_.config.children[i]).outerHeight(),
-                p: _.config.children[i]
+                // w: $(_.config.children[i]).outerWidth(),
+                // h: $(_.config.children[i]).outerHeight(),
+                // p: _.config.children[i],
+                a: false,
+                x: parseInt(cellAmount),
+                y: parseInt($(_.config.children[i]).attr('data-h')),
             };
+
 
             _.config.collection.push(bin);
         }
-        _.apply();
+        _.add();
     }
 
-    Aedifico.prototype.apply = function() {
+    Aedifico.prototype.add = function() {
         var _ = this;
 
-        console.table(_.config.collection);
+        var elms = _.config.collection;
+        console.table(elms);
+
+        var rows = _.config.rows;
+        var currentRow = rows[rows.length-1];
+        var placed = elms.length;
+
+        for(var i = 0; i < placed; i++) {
+            var space = parseInt(_.options.colCount) - parseInt(currentRow.filled);
+
+            var filtered = elms.filter(function(e) {
+                return e.a == false
+            });
+
+
+
+            if(filtered.length > 0) {
+
+                if((i < placed) && (currentRow.filled == _.options.colCount)) {
+                    var found = filtered.filter(function(e) {
+                        return e.y < currentRow.height
+                    });
+                    found = found[0];
+
+                    if(!found) {
+                        rows.push({
+                            cells: [],
+                            filled: 0,
+                            height: 0,
+                        });
+                        currentRow = rows[rows.length-1];
+                    }
+
+                } else {
+                    var found = filtered.find(function(e) {
+                        return e.x <= space;
+                    });
+                }
+
+                if(found) {
+                    currentRow.filled += found.x;
+                    currentRow.cells.push(found);
+                    found.a = true;
+                    placed += 1;
+                    if(found.y > currentRow.height) currentRow.height = found.y;
+                }
+
+
+
+
+
+
+
+            } else {
+                console.log('Done: all elements placed');
+                break;
+            }
+
+
+        }
+
+        console.table(rows);
+
     }
+
+
 
     Aedifico.prototype.resize = function() {
         var _ = this;
@@ -84,7 +168,7 @@
             clearTimeout(_.config.windowDelay);
             _.config.windowDelay = window.setTimeout(function() {
                 _.config.parentWidth = $(_.config.parent).outerWidth();
-                console.log('resize?');
+                //console.log('resize?');
             }, 200);
         }
     }

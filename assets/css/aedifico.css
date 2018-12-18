@@ -4,7 +4,7 @@
   position: relative;
 }
 
-.row.aedifico > div[class^='col'] {
+.row.aedifico > div[class*='col'] {
   position: absolute;
   /* border: solid 1px #6c757d; */
   padding: 10px;
