@@ -43,22 +43,28 @@
 
             $(window).on('resize.' + _.config.parent, $.proxy(_.resize, _));
 
-            _.build();
+            // Start the init process
+            _.init();
         }
         return Aedifico;
     }());
 
-    Aedifico.prototype.build = function() {
+    Aedifico.prototype.init = function() {
         var _ = this;
+
+        // Clear children
         _.config.children = [];
+        // Fill array with children of parent
         _.config.children = _.config.parent.children('div');
 
+        // Add default row to rows
         _.config.rows.push({
-            cells: [],
-            filled: 0,
-            height: 0,
-        })
+            cells: [], // contains all added cells
+            filled: 0, // the amount filled
+            height: 0, // the total height of the row
+        });
 
+        // Start collecting data
         _.collect();
     }
 
@@ -67,99 +73,146 @@
     Aedifico.prototype.collect = function() {
         var _ = this;
 
+        // Reset collection
         _.config.collection = [];
+
+        // Loop through the children to start collecting data
         for(var i = 0; i < _.config.children.length; i++) {
-            // console.log($(_.config.children[i]).attr('class').split(' '));
-            var className = $(_.config.children[i]).attr('class').split(' ').filter(function(e) {
+
+            // Retrieve the relevant classname of element
+            var getClassName = $(_.config.children[i]).attr('class').split(' ').filter(function(e) {
                 return e.indexOf(_.options.className) > -1
             });
-            // One class only
-            var cellAmount = className[0].substring(_.options.className.length);
 
+            // Put everything in a arbitrary object
             var bin = {
-                // w: $(_.config.children[i]).outerWidth(),
-                // h: $(_.config.children[i]).outerHeight(),
-                // p: _.config.children[i],
-                a: false,
-                x: parseInt(cellAmount),
-                y: parseInt($(_.config.children[i]).attr('data-h')),
+                target: _.config.children[i],
+                parent: {},
+                x: parseInt(getClassName[0].substring(_.options.className.length)),
+                y: Math.round(parseInt($(_.config.children[i]).outerHeight())),
+                p: false,
+                rowIndex: 0,
+                py: 0,
             };
 
-
+            // Add object bin to collection
             _.config.collection.push(bin);
         }
+
+        // Start adding elements to the row
         _.add();
     }
 
     Aedifico.prototype.add = function() {
         var _ = this;
 
+        // Create shorthand to the collection
         var elms = _.config.collection;
-        console.table(elms);
-
         var rows = _.config.rows;
-        var currentRow = rows[rows.length-1];
-        var placed = elms.length;
 
-        for(var i = 0; i < placed; i++) {
-            var space = parseInt(_.options.colCount) - parseInt(currentRow.filled);
+        // Create shorthand to the current row to write to
+        var currRow = rows[rows.length-1];
 
-            var filtered = elms.filter(function(e) {
-                return e.a == false
+        // Set while loop index
+        // Warning! Everytime you add a cell, you need to increment this value
+        var index = 0;
+        while(index < elms.length) {
+            var writeCell = false;
+            var cell = {
+                x: currRow.filled,
+                y: 0,
+                rowIndex: rows.length-1,
+                py: 0,
+            };
+
+            var elm = elms.filter(function(elm) {
+                return (!elm.p && (elm.x + currRow.filled <= _.options.colCount))
             });
+            // console.log(elm);
 
+            if(elm.length == 0) {
+                writeCell = true;
+                // find open spot below cell?
+                cell = elms.filter(function(elm) {
+                    return (elm.p && elm.rowIndex == rows.length-1 && ((currRow.height - elm.y) > 0))
+                });
 
+                if(cell.length > 0) {
+                    cell = {
+                        x: cell[0].parent.x,
+                        y: cell[0].y + cell[0].parent.py,
+                        py: cell[0].y + cell[0].parent.y,
+                        rowIndex: cell[0].rowIndex,
+                    };
 
-            if(filtered.length > 0) {
-
-                if((i < placed) && (currentRow.filled == _.options.colCount)) {
-                    var found = filtered.filter(function(e) {
-                        return e.y < currentRow.height
+                    var space = currRow.height - cell.y;
+                    var elm = elms.filter(function(elm) {
+                        return (!elm.p && (parseInt(elm.y) <= space))
                     });
-                    found = found[0];
-
-                    if(!found) {
-                        rows.push({
-                            cells: [],
-                            filled: 0,
-                            height: 0,
-                        });
-                        currentRow = rows[rows.length-1];
-                    }
-
                 } else {
-                    var found = filtered.find(function(e) {
-                        return e.x <= space;
-                    });
+                    console.log('this happens');
                 }
+            }
+            // console.log(elm);
 
-                if(found) {
-                    currentRow.filled += found.x;
-                    currentRow.cells.push(found);
-                    found.a = true;
-                    placed += 1;
-                    if(found.y > currentRow.height) currentRow.height = found.y;
-                }
+            // var elm = elms[index];
 
+            if(elm.length > 0) {
+                elm = elm[0];
 
+                if(elm.y > currRow.height) currRow.height = elm.y;
+                elm.p = true;
+                elm.rowIndex = cell.rowIndex;
 
+                console.log(cell);
 
+                elm.parent = cell;
 
-
-
+                currRow.cells.push(elm);
+                currRow.filled += elm.x;
             } else {
-                console.log('Done: all elements placed');
-                break;
+                // Add default row to rows
+                _.config.rows.push({
+                    cells: [], // contains all added cells
+                    filled: 0, // the amount filled
+                    height: 0, // the total height of the row
+                });
+
+                currRow = rows[rows.length-1];
+
+                index--;
             }
 
-
+            index++;
         }
 
+        // console.table(elms);
         console.table(rows);
 
+        _.apply();
     }
 
+    Aedifico.prototype.apply = function() {
+        var _ = this;
 
+        var offsetY = 0;
+
+        for(var i = 0; i < _.config.rows.length; i++) {
+            var row = _.config.rows[i];
+
+
+
+            for(var j = 0; j < row.cells.length; j++) {
+                var child = row.cells[j];
+                console.log(child);
+                child.target.style.top = (offsetY + child.parent.py) + 'px';
+                child.target.style.left = (child.parent.x > 0 ? (100 / (_.options.colCount / child.parent.x)) : 0) + '%';
+                // child.target.style.height = child.y + 'px';
+
+            }
+            offsetY = row.height;
+        }
+    }
 
     Aedifico.prototype.resize = function() {
         var _ = this;
