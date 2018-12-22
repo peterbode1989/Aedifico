@@ -57,15 +57,6 @@
         // Fill array with children of parent
         _.config.children = _.config.parent.children('div');
 
-        // Add default row to rows
-        _.config.rows.push({
-            cells: [], // contains all added cells
-            minCells: 0, // the min-amount of cells
-            maxCells: parseInt(_.options.cellCount), // the max amount of cells
-            mheight: 0, // the min height of the row
-            height: 0, // the max height of the row
-        });
-
         // Start collecting data
         _.collect();
     }
@@ -113,116 +104,92 @@
         _.add();
     }
 
+    Aedifico.prototype.createRow = function (elm) {
+        var _ = this;
+        // Add default row to rows
+        _.config.rows.push({
+            cells: [], // contains all added cells
+            content: 0,
+            size: {
+                w: elm ? elm.size.w : parseInt(_.options.cellCount),
+                h: 0,
+            },
+            offset: {
+                x: elm ? elm.offset.x : 0,
+                y: elm ? (elm.size.h + elm.offset.y) : 0,
+            },
+        });
+    }
+
     Aedifico.prototype.add = function() {
         var _ = this;
 
         // Create shorthand to the collection
         var elms = _.config.collection;
+
+
         var rows = _.config.rows;
+        // Add default row to rows
+        _.createRow();
 
-        // Create shorthand to the current row to write to
-        var currRow = rows[rows.length-1];
-
-        // Set while loop index
-        // Warning! Everytime you add a cell, you need to increment this value
         var index = 0;
         while(index < elms.length) {
-            // Find the first DOM-element
+
             var elm = elms.filter(function(e) {
-                return (!e.parent
-                     && (e.size.w + currRow.minCells) <= currRow.maxCells)
+                return !e.parent
             });
 
-            // Check if any cells fit in the current row
+            console.log(elm);
+
             if(elm.length > 0) {
-                // Get the first element
                 elm = elm[0];
 
-                // Update current element
-                elm.offset.x = currRow.minCells;
-                elm.parent = true;
-
-                // Insert/update the row information
-                currRow.minCells += elm.size.w;
-                currRow.cells.push(elm);
-
-                // If the new element has a greater height then the row,
-                // update the current row
-                if(elm.size.h < currRow.mheight) {
-                    currRow.mheight = elm.size.h;
-                }
-                if(elm.size.h > currRow.height) {
-                    if(currRow.mheight == 0) currRow.mheight = elm.size.h;
-                    currRow.height = elm.size.h;
-                }
-            } else {
-                // Find the a open spot
-                var xs = elms.filter(function(e) {
-                    return (e.parent && !e.child
-                         && (currRow.mheight == (e.size.h + e.offset.y)))
+                var currRows = rows.filter(function(r) {
+                    // return (r.content < r.size.w) && ((r.size.w - r.content) >= elm.size.w)
+                    return r.content < r.size.w
                 });
 
-                if(xs.length > 0) {
-                    xs = xs[0];
+                console.log(currRows);
 
-                    var elm = elms.filter(function(e) {
-                        return (!e.parent && (e.size.w <= xs.size.w))
-                    });
-                    console.log(elm);
+                // currRows = rows.sort(function(a, b) {
+                //     if (a.city === b.city) {
+                //         // Price is only important when cities are the same
+                //         return b.price - a.price;
+                //     }
+                //     return a.city > b.city ? 1 : -1;
+                // });
+                // console.log(currRows);
+                if(currRows.length > 0) {
+                    var currRow = currRows[0];
 
-                    if(elm.length > 0) {
-                        elm = elm[0];
+                    var lastCell = currRow.cells[currRow.cells.length-1];
+                    if(lastCell) {
+                        elm.offset.x = lastCell.offset.x + lastCell.size.w;
 
-
-                        elm.offset.y = xs.offset.y + xs.size.h;
-                        elm.offset.x = xs.offset.x;
-                        elm.parent = true;
-                        currRow.cells.push(elm);
-
-                        if(elm.size.w < xs.size.w) {
-                            // Create/add ghost cell
-                            var temp = {
-                                offset: {
-                                    x: elm.size.w + xs.offset.x,
-                                    y: xs.offset.y + xs.size.h,
-                                },
-                                size: {
-                                    w: xs.size.w - elm.size.w,
-                                    h: elm.size.h,
-                                },
-                                parent: true,
-                                child: false,
-                                target: null,
-                            };
-                            currRow.cells.push(temp);
-                        }
-
-                        xs.child = true;
-
-                        if((elm.offset.y + elm.size.h) > currRow.mheight) {
-                            currRow.mheight = (elm.offset.y + elm.size.h);
-                        }
-
-
-                        // break;
-                    } else {
-                        console.warn('BREAK Y');
+                        _.createRow(lastCell);
                     }
+
+                    elm.parent = true;
+                    currRow.content += elm.size.w
+
+                    if(currRow.content >= currRow.size.w) {
+                        _.createRow(elm);
+                    }
+
+                    currRow.cells.push(elm);
+
                 } else {
-                    console.warn('BREAK X');
+                    console.log('No room in current row for: ');
+                    console.log(elm);
                 }
-
-
             }
-
+            // console.log(rows);
+            // if(index == 2) break;
+            console.log('');
 
 
             index++;
         }
-
-        // console.table(elms);
-        // console.table(rows);
-
         _.apply();
     }
 
@@ -235,17 +202,17 @@
             for(var j = 0; j < row.cells.length; j++) {
                 var elm = row.cells[j];
 
-                if (!elm.target) {
-
-                    // draw ghost cells
-                    var btn = document.createElement('div');
-                    btn.className = 'ghost ' + _.options.className + elm.size.w;
-                    _.config.parent.append(btn);
-                    elm.target = btn;
-
-                }
-                elm.target.style.top = elm.offset.y + 'px';
-                elm.target.style.left = 100 / (row.maxCells / elm.offset.x) + '%';
+                // if (!elm.target) {
+                //
+                //     // draw ghost cells
+                //     var btn = document.createElement('div');
+                //     btn.className = 'ghost ' + _.options.className + elm.size.w;
+                //     _.config.parent.append(btn);
+                //     elm.target = btn;
+                //
+                // }
+                elm.target.style.top = row.offset.y + elm.offset.y + 'px';
+                elm.target.style.left = 100 / (_.options.cellCount / (row.offset.x + elm.offset.x)) + '%';
                 elm.target.style.height = elm.size.h + 'px';
 
 
